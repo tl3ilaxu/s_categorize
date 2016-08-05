@@ -215,11 +215,12 @@ for arg in "$@"; do
 
         # Display all possible matches numbered
         nl "$tmp_location.found_ser"
+        # This is required in the while loop
         nr_chosen="0"
 
         # If there is more then one match
-        if [ $nr_matches -gt 1 ]; then
-            while [ $nr_chosen -lt 1 -o $nr_chosen -gt $nr_matches ]; do
+        if [ "$nr_matches" -gt 1 ]; then
+            while [ "$nr_chosen" -lt 1 -o "$nr_chosen" -gt "$nr_matches" ]; do
 
                 # Request to choose between possible matches
                 echo "Enter 1 to $nr_matches:"
