@@ -220,11 +220,15 @@ for arg in "$@"; do
 
         # If there is more then one match
         if [ "$nr_matches" -gt 1 ]; then
-            while [ "$nr_chosen" = "" -o  "$nr_chosen" -lt 1 -o "$nr_chosen" -gt "$nr_matches" ]; do
+            while [ "$nr_chosen" -lt 1 -o "$nr_chosen" -gt "$nr_matches" ]; do
 
                 # Request to choose between possible matches
                 echo "Enter 1 to $nr_matches:"
                 read nr_chosen
+                if [ "$nr_chosen" = ""]; then
+                    nr_chosen="0"
+                fi
+
             done
         else
             nr_chosen=1
