@@ -47,7 +47,7 @@ function new_series {
 
         # If the serie name needs to be changed prompt for new name
         if [ $(confirm n) ];then
-            read -ei $target_serie_name target_serie_name
+            read -ei "$target_serie_name" "target_serie_name"
         fi
 
         # Display what will be created
@@ -219,7 +219,7 @@ for arg in "$@"; do
 
         # If there is more then one match
         if [ $nr_matches -gt 1 ]; then
-            while [ $nr_chosen -lt 1 -o $nr_chosen -gt $(($nr_matches + 1)) ]; do
+            while [ $nr_chosen -lt 1 -o $nr_chosen -gt $nr_matches ]; do
 
                 # Request to choose between possible matches
                 echo "Enter 1 to $nr_matches:"
@@ -242,11 +242,11 @@ for arg in "$@"; do
             fi
             mv "$arg" "$folder$line"
         else
-            new_series $serie_name $season $line $arg
+            new_series "$serie_name" "$season" "$line" "$arg"
         fi
     else
         echo "No season detected for file $arg"
-        new_movie $line $arg
+        new_movie "$line" "$arg"
     fi  
     echo "--------"
 done
