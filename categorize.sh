@@ -228,7 +228,7 @@ for arg in "$@"; do
         else
             nr_chosen=1
         fi
-        target_serie_name=$(cat $tmp_location.found_ser | sed -n $nr_chosen'p')
+        target_serie_name=$(cat $tmp_location.found_ser | sed -n $(($nr_chosen + 1))'p')
         folder="$vid_target_location$target_serie_name/Season $season/"
         echo "Moving to $folder$line"
         if [ ! -e "$folder" ];then
