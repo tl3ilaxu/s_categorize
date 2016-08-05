@@ -225,7 +225,7 @@ for arg in "$@"; do
                 # Request to choose between possible matches
                 echo "Enter 1 to $nr_matches:"
                 read nr_chosen
-                if [ "$nr_chosen"="" ]; then
+                if [ -z "$nr_chosen" ]; then
                     nr_chosen="0"
                 fi
 
