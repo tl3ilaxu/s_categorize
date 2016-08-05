@@ -103,7 +103,7 @@ function new_movie {
 ## Make sure cleanup gets run if script is canceled
 trap cleanup INT
 if [ ! $# -gt 0 ]; then
-    echo "Not enough arguments"
+    echo "Usage ./cleanup DIR_TO_CATEGORIZE"
     exit 1
 fi
 
@@ -141,7 +141,7 @@ for arg in "$@"; do
     echo "Running for $line"
 
     ###Check extension
-    valid_extensions=( avi mp4 mkv  )
+    valid_extensions=( avi mp4 mkv )
     extension=$(echo $line | sed 's/.*\.//')
     for i in "${valid_extensions[@]}"; do
         if [ "$extension" == $i ];then
@@ -151,7 +151,7 @@ for arg in "$@"; do
         skip=false
     done
     if [ $skip == false ]; then
-        echo "Skipping file with non valid extension."
+        echo "Skipping file with invalid extension."
         continue
     fi
 
@@ -191,15 +191,15 @@ for arg in "$@"; do
         echo $serie_name
 
         ## Look is the serie exists already; write possible matches to file
-        echo "$($seriedb | grep --ignore-case "$serie_name")" > "$HOME/.found_ser"
+        echo "$($seriedb | grep --ignore-case "$serie_name")" > "$tmp_location/.found_ser"
 
-        nr_matches=$(cat "$HOME/.found_ser" | grep -vc '^$')
+        nr_matches=$(cat "$tmp_location/.found_ser" | grep -vc '^$')
         if [[ $nr_matches == 0 ]]; then
-            echo $serie_name |tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location >> "$HOME/.found_ser"
+            echo $serie_name |tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location >> "$tmp_location/.found_ser"
         fi
 
         ## Number of matches in the current vid target dir
-        nr_matches=$(cat "$HOME/.found_ser" | grep -vc '^$')
+        nr_matches=$(cat "$tmp_location/.found_ser" | grep -vc '^$')
 
         ## If there are no matches in the current vid target dir
         if [[ $nr_matches == 0 ]]; then
@@ -214,7 +214,7 @@ for arg in "$@"; do
         echo $serie_name
 
         # Display all possible matches numbered
-        nl .found_ser
+        nl "$tmp_location/.found_ser"
         nr_chosen="0"
 
         # If there is more then one match
@@ -228,7 +228,7 @@ for arg in "$@"; do
         else
             nr_chosen=1
         fi
-        target_serie_name=$(cat .found_ser | sed -n $nr_chosen'p')
+        target_serie_name=$(cat $tmp_location/.found_ser | sed -n $nr_chosen'p')
         folder="$vid_target_location$target_serie_name/Season $season/"
         echo "Moving to $folder$line"
         if [ ! -e "$folder" ];then
