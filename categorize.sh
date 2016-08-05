@@ -191,15 +191,15 @@ for arg in "$@"; do
         echo $serie_name
 
         ## Look is the serie exists already; write possible matches to file
-        echo "$($seriedb | grep --ignore-case "$serie_name")" > "$tmp_location/.found_ser"
+        echo "$($seriedb | grep --ignore-case "$serie_name")" > "$tmp_location.found_ser"
 
-        nr_matches=$(cat "$tmp_location/.found_ser" | grep -vc '^$')
+        nr_matches=$(cat "$tmp_location.found_ser" | grep -vc '^$')
         if [[ $nr_matches == 0 ]]; then
-            echo $serie_name |tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location >> "$tmp_location/.found_ser"
+            echo $serie_name |tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location >> "$tmp_location.found_ser"
         fi
 
         ## Number of matches in the current vid target dir
-        nr_matches=$(cat "$tmp_location/.found_ser" | grep -vc '^$')
+        nr_matches=$(cat "$tmp_location.found_ser" | grep -vc '^$')
 
         ## If there are no matches in the current vid target dir
         if [[ $nr_matches == 0 ]]; then
@@ -214,12 +214,12 @@ for arg in "$@"; do
         echo $serie_name
 
         # Display all possible matches numbered
-        nl "$tmp_location/.found_ser"
+        nl "$tmp_location.found_ser"
         nr_chosen="0"
 
         # If there is more then one match
         if [ $nr_matches -gt 1 ]; then
-            while [ $nr_chosen -lt 1 -o $nr_chosen -gt $nr_matches ]; do
+            while [ $nr_chosen -lt 1 -o $nr_chosen -gt $(($nr_matches + 1)) ]; do
 
                 # Request to choose between possible matches
                 echo "Enter 1 to $nr_matches:"
@@ -228,7 +228,7 @@ for arg in "$@"; do
         else
             nr_chosen=1
         fi
-        target_serie_name=$(cat $tmp_location/.found_ser | sed -n $nr_chosen'p')
+        target_serie_name=$(cat $tmp_location.found_ser | sed -n $nr_chosen'p')
         folder="$vid_target_location$target_serie_name/Season $season/"
         echo "Moving to $folder$line"
         if [ ! -e "$folder" ];then
