@@ -8,6 +8,7 @@ mov_target_location="$HOME/video/"
 
 ###Cleanup function called after each script call
 function cleanup {
+    echo "Cleanup..."
     if [ -f "$tmp_location.found_vid" ]; then
         rm "$tmp_location.found_vid" 
     fi
@@ -60,8 +61,8 @@ function new_series {
         if [ $(confirm) ];then
 
             # If confirmed write files
-            mkdir "$vid_target_location$target_serie_name/"
-            mkdir "$vid_target_location$target_serie_name/Season $2/"
+            mkdir -p "$vid_target_location$target_serie_name/"
+            mkdir -p "$vid_target_location$target_serie_name/Season $2/"
             mv "$4" "$vid_target_location$target_serie_name/Season $2/$3"
         else
             return 1
@@ -100,8 +101,22 @@ function new_movie {
     fi
 }
 
+# Flag to do cleanup or not
+cleanup=true
+# Read flags
+for arg in "$@"; do
+    if [[ $arg =~ ^- ]]; then
+        if [ $arg == "-s" ]; then
+            cleanup=false
+        fi
+    fi
+done
+
 ## Make sure cleanup gets run if script is canceled
-trap cleanup INT
+if [ $cleanup = true ]; then
+    trap cleanup INT
+fi
+
 if [ ! $# -gt 0 ]; then
     echo "Usage ./cleanup DIR_TO_CATEGORIZE"
     exit 1
@@ -111,29 +126,27 @@ fi
 viddb="cat $viddb_location"
 seriedb="cat $seriedb_location"
 
-## Generate database
-echo -ne "Generating database...\r"
-ls $vid_target_location > $seriedb_location
-echo "Database generated..."
+## Generate database that doesn't need to be rechecked for every file
+if [ $cleanup = true ]; then
+    echo -ne "Generating database...\r"
+    ls $vid_target_location > $seriedb_location
+    echo "Database generated..."
+fi
 
 ## Start looping over script parameters
 for arg in "$@"; do
-
     ###If the argument is a directory call script recursively
     if [ -d "$arg" ]; then 
-        find "$arg" -type f -exec $0 {} \;
-
-        ## After each sctipt call cleanup is called so regen the db
-        echo -ne "Regenerating database...\r"
-        ls $vid_target_location > $seriedb_location
-        echo "Database regenerated..."
+        find "$arg" -type f -exec $0 -s {} \;
         continue
     fi
 
     ###If the argument is not valid
     if [ ! -f "$arg" ]; then 
-        echo "Parameter $arg is not a valid file."
-        continue
+        if [[ ! $arg =~ ^- ]]; then
+            echo "Parameter $arg is not a valid file."
+            continue
+        fi
     fi
 
     ##File name
@@ -190,16 +203,24 @@ for arg in "$@"; do
         serie_name=$(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| head -$end_line_nr | tr "\n" " " | sed 's/ *$//')
         echo $serie_name
 
-        ## Look is the serie exists already; write possible matches to file
-        echo "$($seriedb | grep --ignore-case "$serie_name")" > "$tmp_location.found_ser"
+        ## Look if the serie exists already; write possible matches to file
+        #echo "$($seriedb | grep --ignore-case "$serie_name")" > "$tmp_location.found_ser"
+        found_ser="$($seriedb | grep --ignore-case "$serie_name")"
+        test_listing="$($seriedb | grep --ignore-case "$serie_name")"
 
-        nr_matches=$(cat "$tmp_location.found_ser" | grep -vc '^$')
+        nr_matches=$(grep -vc '^$' <<<"$test_listing")
+
+        #nr_matches=$(cat "$tmp_location.found_ser" | grep -vc '^$')
+
+        # TODO fix this without file
+        # Fuzzy search the serie name
         if [[ $nr_matches == 0 ]]; then
             echo $serie_name |tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location >> "$tmp_location.found_ser"
         fi
 
         ## Number of matches in the current vid target dir
-        nr_matches=$(cat "$tmp_location.found_ser" | grep -vc '^$')
+        #nr_matches=$(cat "$tmp_location.found_ser" | grep -vc '^$')
+        nr_matches=$(grep -vc '^$' <<<"$test_listing")
 
         ## If there are no matches in the current vid target dir
         if [[ $nr_matches == 0 ]]; then
@@ -214,7 +235,8 @@ for arg in "$@"; do
         echo $serie_name
 
         # Display all possible matches numbered
-        nl "$tmp_location.found_ser"
+        #nl "$tmp_location.found_ser"
+        nl <<< "$found_ser"
         # This is required in the while loop
         nr_chosen="0"
 
@@ -231,10 +253,11 @@ for arg in "$@"; do
 
             done
         else
-            nr_chosen=1
+            nr_chosen="1"
         fi
 
-        target_serie_name=$(cat $tmp_location.found_ser | sed -n $(($nr_chosen + 1))'p')
+        #target_serie_name=$(cat $tmp_location.found_ser | sed -n $(($nr_chosen + 1))'p')
+        target_serie_name=$(echo "$found_ser" | sed -n $nr_chosen'p')
         folder="$vid_target_location$target_serie_name/Season $season/"
         echo "Moving to $folder$line"
         if [ ! -e "$folder" ];then
@@ -255,4 +278,6 @@ for arg in "$@"; do
     fi  
     echo "--------"
 done
-cleanup
+if [ $cleanup = true ]; then
+    cleanup
+fi
