@@ -40,10 +40,10 @@ function new_series {
     if [ $(confirm) ];then
 
         # The name of the new series
-        target_serie_name=$(echo $1 | sed -e "s/\b\(.\)/\u\1/g")
+        target_serie_name="$(echo $1 | sed -e "s/\b\(.\)/\u\1/g")"
 
         # Ask if this series name is correct and if it needs to be changed
-        echo $target_serie_name
+        echo "$target_serie_name"
         echo "Change name for $target_serie_name? [y/N]"
 
         # If the serie name needs to be changed prompt for new name
@@ -72,41 +72,12 @@ function new_series {
     fi
 }
 
-# Create new movie
-# new_series NAME FILEPATH
-function new_movie {
-    movie_name=$(echo $1 | sed "s/\..*$//")
-    echo "Create new movie for for $movie_name [Y/n]"
-    if [ $(confirm) ]; then
-        # The name of the new movie
-        target_movie_name=$(echo $movie_name | sed -e "s/\b\(.\)/\u\1/g")
-        # Ask if this name is correct and if it needs to be changed
-        echo $target_movie_name
-        echo "Change name for $target_movie_name? [y/N]"
-
-        # If the serie name needs to be changed prompt for new name
-        if [ $(confirm n) ];then
-            read -ei $target_movie_name target_movie_name
-        fi
-
-        echo "Making directory $mov_target_location$target_movie_name/"
-        basenam=$(basename $2)
-        echo $basenam
-        echo "Moving to $mov_target_location$target_movie_name/$1"
-        echo "Confirm? [Y/n]"
-        if [ $(confirm) ]; then
-            mkdir $mov_target_location$target_movie_name/
-            mv $2 $mov_target_location$target_movie_name/$1
-        fi
-    fi
-}
-
 # Flag to do cleanup or not
 cleanup=true
 # Read flags
 for arg in "$@"; do
-    if [[ $arg =~ ^- ]]; then
-        if [ $arg == "-s" ]; then
+    if [[ "$arg" =~ ^- ]]; then
+        if [ "$arg" == "-s" ]; then
             cleanup=false
         fi
     fi
@@ -155,7 +126,7 @@ for arg in "$@"; do
 
     ###Check extension
     valid_extensions=( avi mp4 mkv )
-    extension=$(echo $line | sed 's/.*\.//')
+    extension="$(echo $line | sed 's/.*\.//')"
     for i in "${valid_extensions[@]}"; do
         if [ "$extension" == $i ];then
             skip=true
@@ -169,19 +140,20 @@ for arg in "$@"; do
     fi
 
     ## Find the S##E## in the file name
-    season_ep=$(echo $line | sed 's/\.[^.]*$//' | sed 's/[^a-zA-Z0-9]/\n/g' | egrep -i 's|e' | sed 's/[^0-9]//g' | tr -d "\n")
-    line_length=$(echo $season_ep | wc -L)
+    season_ep="$(echo $line | sed 's/\.[^.]*$//' | sed 's/[^a-zA-Z0-9]/\n/g' | egrep -i 's|e' | sed 's/[^0-9]//g' | head -n 1 | tr -d "\n")"
+    line_length="$(echo $season_ep | wc -L)"
 
     ## Find the number of the line where the season is defined so all lines after that can be thrown away
-    end_line_nr=$(echo $(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '(s|e)+.*[0-9]+' | cut -c1)-1|bc)
+    end_line_nr="$(echo $(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '(s|e)+.*[0-9]+' | cut -c1)-1|bc)"
 
     ## If the found season is invalid try to detect it better
     if [ $line_length -gt 4 -o $line_length -lt 1 ]; then
         echo "Special season check running on $line"
         echo $season_ep
-        season_ep=$(echo $line | sed 's/\.[^.]*$//' | sed 's/[^a-zA-Z0-9]/\n/g' | grep -vi '[^0-9]' | sed 's/[^0-9]//g' | tr -d "\n")
-        line_length=$(echo $season_ep | wc -L)
-        end_line_nr=$(echo $(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '^[0-9]+$' | sed 's/:.*$//')-1|bc)
+        season_ep="$(echo $line | sed 's/\.[^.]*$//' | sed 's/[^a-zA-Z0-9]/\n/g' | grep -vi '[^0-9]' | sed 's/[^0-9]//g' | tr -d "\n")"
+        line_length="$(echo $season_ep | wc -L)"
+        end_line_nr="$(echo $(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '^[0-9]+$' | sed 's/:.*$//')-1|bc)"
+        echo $season_ep
         echo "Special season check over"
     fi
 
@@ -212,10 +184,10 @@ for arg in "$@"; do
 
         #nr_matches=$(cat "$tmp_location.found_ser" | grep -vc '^$')
 
-        # TODO fix this without file
         # Fuzzy search the serie name
         if [[ $nr_matches == 0 ]]; then
-            echo $serie_name |tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location >> "$tmp_location.found_ser"
+            echo "Special series check"
+            found_ser+="$(echo $serie_name | tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location)"
         fi
 
         ## Number of matches in the current vid target dir
@@ -226,9 +198,9 @@ for arg in "$@"; do
         if [[ $nr_matches == 0 ]]; then
             # Ask to create a new serie
             new_series $serie_name $season $line $arg
-            if [ $? == 1 ]; then
-                new_movie $line $arg
-            fi
+            #if [ $? == 1 ]; then
+            #    new_movie $line $arg
+            #fi
             continue
         fi
         echo "Found $nr_matches matches: "
@@ -274,7 +246,7 @@ for arg in "$@"; do
         fi
     else
         echo "No season detected for file $arg"
-        new_movie "$line" "$arg"
+        #new_movie "$line" "$arg"
     fi  
     echo "--------"
 done
