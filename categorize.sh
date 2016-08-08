@@ -173,23 +173,19 @@ for arg in "$@"; do
         serie_name="$(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| head -$end_line_nr | tr "\n" " " | sed 's/ *$//')"
 
         ## Look if the serie exists already; write possible matches to file
-        #echo "$($seriedb | grep --ignore-case "$serie_name")" > "$tmp_location.found_ser"
         found_ser="$($seriedb | grep --ignore-case "$serie_name")"
-        test_listing="$($seriedb | grep --ignore-case "$serie_name")"
 
-        nr_matches=$(grep -vc '^$' <<<"$test_listing")
-
-        #nr_matches=$(cat "$tmp_location.found_ser" | grep -vc '^$')
+        nr_matches=$(grep -vc '^$' <<< "$found_ser")
 
         # Fuzzy search the serie name
         if [[ $nr_matches == 0 ]]; then
             echo "Special series check"
-            found_ser+="$(echo $serie_name | tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location)"
+            found_ser+="$(echo $serie_name | tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location | sort | uniq)"
         fi
 
         ## Number of matches in the current vid target dir
         #nr_matches=$(cat "$tmp_location.found_ser" | grep -vc '^$')
-        nr_matches=$(grep -vc '^$' <<<"$test_listing")
+        nr_matches=$(grep -vc '^$' <<< "$found_ser")
 
         ## If there are no matches in the current vid target dir
         if [[ $nr_matches == 0 ]]; then
