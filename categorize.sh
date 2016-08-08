@@ -144,16 +144,14 @@ for arg in "$@"; do
     line_length="$(echo $season_ep | wc -L)"
 
     ## Find the number of the line where the season is defined so all lines after that can be thrown away
-    end_line_nr="$(echo $(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '(s|e)+.*[0-9]+' | cut -c1)-1|bc)"
+    end_line_nr="$(($(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '(s|e)+.*[0-9]+' | cut -c1 | head -n 1) - 1))"
 
     ## If the found season is invalid try to detect it better
     if [ $line_length -gt 4 -o $line_length -lt 1 ]; then
         echo "Special season check running on $line"
-        echo $season_ep
         season_ep="$(echo $line | sed 's/\.[^.]*$//' | sed 's/[^a-zA-Z0-9]/\n/g' | grep -vi '[^0-9]' | sed 's/[^0-9]//g' | tr -d "\n")"
         line_length="$(echo $season_ep | wc -L)"
         end_line_nr="$(echo $(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '^[0-9]+$' | sed 's/:.*$//')-1|bc)"
-        echo $season_ep
         echo "Special season check over"
     fi
 
@@ -172,8 +170,7 @@ for arg in "$@"; do
         episode=$(echo $episode | sed 's/^0*//')
         season=$(echo $season | sed 's/^0*//')
         echo "Season: $season Episode: $episode"
-        serie_name=$(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| head -$end_line_nr | tr "\n" " " | sed 's/ *$//')
-        echo $serie_name
+        serie_name="$(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| head -$end_line_nr | tr "\n" " " | sed 's/ *$//')"
 
         ## Look if the serie exists already; write possible matches to file
         #echo "$($seriedb | grep --ignore-case "$serie_name")" > "$tmp_location.found_ser"
@@ -204,7 +201,6 @@ for arg in "$@"; do
             continue
         fi
         echo "Found $nr_matches matches: "
-        echo $serie_name
 
         # Display all possible matches numbered
         #nl "$tmp_location.found_ser"
