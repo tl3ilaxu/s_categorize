@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Puts tv-series files in the right folder structure
 ###The location of the temp file
 tmp_location="$HOME/"
 seriedb_location="$tmp_location.seriedb"
@@ -6,21 +8,32 @@ seriedb_location="$tmp_location.seriedb"
 vid_target_location="$HOME/series/"
 mov_target_location="$HOME/video/"
 
-###Cleanup function called after each script call
+###################################################
+# Cleanup temp files this script creates
+# Globals:
+#   seriedb_location
+# Arguments:
+#   None
+# Returns:
+#   None
+###################################################
 function cleanup {
     echo "Cleanup..."
-    if [ -f "$tmp_location.found_vid" ]; then
-        rm "$tmp_location.found_vid" 
-    fi
-    if [ -f "$tmp_location.found_ser" ]; then
-        rm "$tmp_location.found_ser"
-    fi
     if [ -f $seriedb_location ]; then
         rm $seriedb_location
     fi
     exit 0;
 }
 
+###################################################
+# Function that asks a user to confirm an action
+# Globals:
+#   None
+# Arguments:
+#   (Optional) n - Default to no instead of yes
+# Returns:
+#   true or false
+###################################################
 function confirm {
     read yesno
     value=""
@@ -35,6 +48,18 @@ function confirm {
 
 # Create new series 
 # new_series NAME SEASON FILENAME FILEPATH
+###################################################
+# Creates a new folder structure for a given file
+# Globals:
+#   None
+# Arguments:
+#   name: series name
+#   season: season of the episode
+#   filename: name of the file
+#   filepath: path of the file
+# Returns:
+#   None
+###################################################
 function new_series {
     echo "Create new serie for $1? [Y/n]"
     if [ $(confirm) ];then
@@ -83,7 +108,7 @@ for arg in "$@"; do
     fi
 done
 
-## Make sure cleanup gets run if script is canceled
+# Make sure cleanup gets run if script is terminated
 if [ $cleanup = true ]; then
     trap cleanup INT
 fi
@@ -93,26 +118,24 @@ if [ ! $# -gt 0 ]; then
     exit 1
 fi
 
-##Read the database
-viddb="cat $viddb_location"
 seriedb="cat $seriedb_location"
 
-## Generate database that doesn't need to be rechecked for every file
+# Generate database so that doesn't need to be rechecked for every file
 if [ $cleanup = true ]; then
     echo -ne "Generating database...\r"
     ls $vid_target_location > $seriedb_location
     echo "Database generated..."
 fi
 
-## Start looping over script parameters
+# Start looping over script parameters
 for arg in "$@"; do
-    ###If the argument is a directory call script recursively
+    # If the argument is a directory call script recursively
     if [ -d "$arg" ]; then 
         find "$arg" -type f -exec $0 -s {} \;
         continue
     fi
 
-    ###If the argument is not valid
+    # If the argument is not valid
     if [ ! -f "$arg" ]; then 
         if [[ ! $arg =~ ^- ]]; then
             echo "Parameter $arg is not a valid file."
@@ -120,13 +143,12 @@ for arg in "$@"; do
         fi
     fi
 
-    ##File name
-    line=$(echo "$arg" | sed "s/.*\///")
-    echo "Running for $line"
+    file_name=$(echo "$arg" | sed "s/.*\///")
+    echo "Running for $file_name"
 
-    ###Check extension
+    # Check file extension
     valid_extensions=( avi mp4 mkv )
-    extension="$(echo $line | sed 's/.*\.//')"
+    extension="$(echo $file_name | sed 's/.*\.//')"
     for i in "${valid_extensions[@]}"; do
         if [ "$extension" == $i ];then
             skip=true
@@ -139,40 +161,45 @@ for arg in "$@"; do
         continue
     fi
 
-    ## Find the S##E## in the file name
-    season_ep="$(echo $line | sed 's/\.[^.]*$//' | sed 's/[^a-zA-Z0-9]/\n/g' | egrep -i 's|e' | sed 's/[^0-9]//g' | head -n 1 | tr -d "\n")"
-    line_length="$(echo $season_ep | wc -L)"
+    # Find the S##E## in the file name
+    season_ep="$(echo $file_name \
+        | sed 's/\.[^.]*$//'\
+        | sed 's/[^a-zA-Z0-9]/\n/g'\
+        | egrep -i 's|e' | sed 's/[^0-9]//g'\
+        | head -n 1\
+        | tr -d "\n")"
+    file_name_length="$(echo $season_ep | wc -L)"
 
-    ## Find the number of the line where the season is defined so all lines after that can be thrown away
-    end_line_nr="$(($(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '(s|e)+.*[0-9]+' | cut -c1 | head -n 1) - 1))"
+    # Find the number of the line where the season is defined so all lines after that can be thrown away
+    end_file_name_nr="$(($(echo $file_name | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '(s|e)+.*[0-9]+' | cut -c1 | head -n 1) - 1))"
 
-    ## If the found season is invalid try to detect it better
-    if [ $line_length -gt 4 -o $line_length -lt 1 ]; then
-        echo "Special season check running on $line"
-        season_ep="$(echo $line | sed 's/\.[^.]*$//' | sed 's/[^a-zA-Z0-9]/\n/g' | grep -vi '[^0-9]' | sed 's/[^0-9]//g' | tr -d "\n")"
-        line_length="$(echo $season_ep | wc -L)"
-        end_line_nr="$(echo $(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '^[0-9]+$' | sed 's/:.*$//')-1|bc)"
+    # If the found season is invalid try to detect it better
+    if [ $file_name_length -gt 4 -o $file_name_length -lt 1 ]; then
+        echo "Special season check running on $file_name"
+        season_ep="$(echo $file_name | sed 's/\.[^.]*$//' | sed 's/[^a-zA-Z0-9]/\n/g' | grep -vi '[^0-9]' | sed 's/[^0-9]//g' | tr -d "\n")"
+        file_name_length="$(echo $season_ep | wc -L)"
+        end_file_name_nr="$(echo $(echo $file_name | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '^[0-9]+$' | sed 's/:.*$//')-1|bc)"
         echo "Special season check over"
     fi
 
-    ## If a season and ep is found then
-    if [ $line_length -lt 5  -a $line_length -gt 0 ]; then
+    # If a season and ep is found then
+    if [ $file_name_length -lt 5  -a $file_name_length -gt 0 ]; then
 
-        ## Isolate season and episode number seperatly
+        # Isolate season and episode number seperatly
         season=$(echo $season_ep | cut -c 1)
         episode=$(echo $season_ep | cut -c 2-3)
-        if [ $line_length -eq 4 ]; then
+        if [ $file_name_length -eq 4 ]; then
             episode=$(echo $season_ep | cut -c 3-4)
             season=$(echo $season_ep | cut -c 1-2)
         fi
 
-        ## Remove start 0's
+        # Remove start 0's
         episode=$(echo $episode | sed 's/^0*//')
         season=$(echo $season | sed 's/^0*//')
         echo "Season: $season Episode: $episode"
-        serie_name="$(echo $line | sed 's/[^a-zA-Z0-9]/\n/g'| head -$end_line_nr | tr "\n" " " | sed 's/ *$//')"
+        serie_name="$(echo $file_name | sed 's/[^a-zA-Z0-9]/\n/g'| head -$end_file_name_nr | tr "\n" " " | sed 's/ *$//')"
 
-        ## Look if the serie exists already; write possible matches to file
+        # Look if the serie exists already; write possible matches to file
         found_ser="$($seriedb | grep --ignore-case "$serie_name")"
 
         nr_matches=$(grep -vc '^$' <<< "$found_ser")
@@ -183,23 +210,18 @@ for arg in "$@"; do
             found_ser+="$(echo $serie_name | tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location | sort | uniq)"
         fi
 
-        ## Number of matches in the current vid target dir
-        #nr_matches=$(cat "$tmp_location.found_ser" | grep -vc '^$')
+        # Number of matches in the current vid target dir
         nr_matches=$(grep -vc '^$' <<< "$found_ser")
 
-        ## If there are no matches in the current vid target dir
+        # If there are no matches in the current vid target dir
         if [[ $nr_matches == 0 ]]; then
             # Ask to create a new serie
-            new_series $serie_name $season $line $arg
-            #if [ $? == 1 ]; then
-            #    new_movie $line $arg
-            #fi
+            new_series $serie_name $season $file_name $arg
             continue
         fi
         echo "Found $nr_matches matches: "
 
         # Display all possible matches numbered
-        #nl "$tmp_location.found_ser"
         nl <<< "$found_ser"
         # This is required in the while loop
         nr_chosen="0"
@@ -220,10 +242,9 @@ for arg in "$@"; do
             nr_chosen="1"
         fi
 
-        #target_serie_name=$(cat $tmp_location.found_ser | sed -n $(($nr_chosen + 1))'p')
         target_serie_name=$(echo "$found_ser" | sed -n $nr_chosen'p')
         folder="$vid_target_location$target_serie_name/Season $season/"
-        echo "Moving to $folder$line"
+        echo "Moving to $folder$file_name"
         if [ ! -e "$folder" ];then
             echo "Making dir $folder"
         fi
@@ -232,13 +253,12 @@ for arg in "$@"; do
             if [ ! -e "$folder" ];then
                 mkdir "$folder"
             fi
-            mv "$arg" "$folder$line"
+            mv "$arg" "$folder$file_name"
         else
-            new_series "$serie_name" "$season" "$line" "$arg"
+            new_series "$serie_name" "$season" "$file_name" "$arg"
         fi
     else
         echo "No season detected for file $arg"
-        #new_movie "$line" "$arg"
     fi  
     echo "--------"
 done
