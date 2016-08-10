@@ -172,14 +172,26 @@ for arg in "$@"; do
     file_name_length="$(echo $season_ep | wc -L)"
 
     # Find the number of the line where the season is defined so all lines after that can be thrown away
-    end_file_name_nr="$(($(echo $file_name | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '(s|e)+.*[0-9]+' | cut -c1 | head -n 1) - 1))"
+    end_file_name_nr="$(($(echo $file_name \
+        | sed 's/[^a-zA-Z0-9]/\n/g'\
+        | egrep -in '(s|e)+.*[0-9]+' \
+        | cut -c1 \
+        | head -n 1) - 1))"
 
     # If the found season is invalid try to detect it better
     if [ $file_name_length -gt 4 -o $file_name_length -lt 1 ]; then
         echo "Special season check running on $file_name"
-        season_ep="$(echo $file_name | sed 's/\.[^.]*$//' | sed 's/[^a-zA-Z0-9]/\n/g' | grep -vi '[^0-9]' | sed 's/[^0-9]//g' | tr -d "\n")"
+        season_ep="$(echo $file_name \
+            | sed 's/\.[^.]*$//' \
+            | sed 's/[^a-zA-Z0-9]/\n/g' \
+            | grep -vi '[^0-9]' \
+            | sed 's/[^0-9]//g' \
+            | tr -d "\n")"
         file_name_length="$(echo $season_ep | wc -L)"
-        end_file_name_nr="$(echo $(echo $file_name | sed 's/[^a-zA-Z0-9]/\n/g'| egrep -in '^[0-9]+$' | sed 's/:.*$//')-1|bc)"
+        end_file_name_nr="$((echo $(echo $file_name \
+            | sed 's/[^a-zA-Z0-9]/\n/g'\
+            | egrep -in '^[0-9]+$' \
+            | sed 's/:.*$//') - 1))"
         echo "Special season check over"
     fi
 
@@ -198,7 +210,11 @@ for arg in "$@"; do
         episode=$(echo $episode | sed 's/^0*//')
         season=$(echo $season | sed 's/^0*//')
         echo "Season: $season Episode: $episode"
-        serie_name="$(echo $file_name | sed 's/[^a-zA-Z0-9]/\n/g'| head -$end_file_name_nr | tr "\n" " " | sed 's/ *$//')"
+        serie_name="$(echo $file_name \
+            | sed 's/[^a-zA-Z0-9]/\n/g'\
+            | head -$end_file_name_nr \
+            | tr "\n" " " \
+            | sed 's/ *$//')"
 
         # Look if the serie exists already; write possible matches to file
         found_ser="$($seriedb | grep --ignore-case "$serie_name")"
@@ -208,7 +224,13 @@ for arg in "$@"; do
         # Fuzzy search the serie name
         if [[ $nr_matches == 0 ]]; then
             echo "Special series check"
-            found_ser+="$(echo $serie_name | tr " " "\n" | sed  "s/the\|and//I" | sed "/ +$/d"| xargs -I "{}" grep -i "{}" $seriedb_location | sort | uniq)"
+            found_ser+="$(echo $serie_name \
+                | tr " " "\n" \
+                | sed  "s/the\|and//I" \
+                | sed "/ +$/d"\
+                | xargs -I "{}" grep -i "{}" $seriedb_location \
+                | sort \
+                | uniq)"
         fi
 
         # Number of matches in the current vid target dir
