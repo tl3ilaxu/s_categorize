@@ -165,7 +165,8 @@ for arg in "$@"; do
     season_ep="$(echo $file_name \
         | sed 's/\.[^.]*$//'\
         | sed 's/[^a-zA-Z0-9]/\n/g'\
-        | egrep -i 's|e' | sed 's/[^0-9]//g'\
+        | egrep -i 's[0-9]+|e[0-9]' \
+        | sed 's/[^0-9]//g'\
         | head -n 1\
         | tr -d "\n")"
     file_name_length="$(echo $season_ep | wc -L)"
@@ -262,6 +263,7 @@ for arg in "$@"; do
     fi  
     echo "--------"
 done
+kodi-send --action=UpdateLibrary\(video\)
 if [ $cleanup = true ]; then
     cleanup
 fi
